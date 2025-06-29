@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	//"go1f/pkg/server"
+	"go1f/pkg/server"
 )
 
 func main() {
