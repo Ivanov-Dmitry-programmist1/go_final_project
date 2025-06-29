@@ -4,9 +4,9 @@ go 1.24.2
 
 require github.com/stretchr/testify v1.10.0
 
-replace go1f => ./
+//replace go1f => ./
 
-require go1f v0.0.0
+//require go1f v0.0.0
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
