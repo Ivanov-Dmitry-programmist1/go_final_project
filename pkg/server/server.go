@@ -1,41 +1,44 @@
 package server
 
 import (
-	"go_final_project/go_final_project/pkg/api"
-	"go_final_project/go_final_project/pkg/db"
-	"log"
-	"net/http"
+	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
-const (
-	DefaultPort = "7540"
-	WebDir      = "./web"
-)
-
-func StartServer(port string, webDir string) error {
-	api.Init()
-	fs := CustomFileServer(webDir)
-	http.Handle("/", fs)
-
-	return http.ListenAndServe(":"+port, nil)
-}
-
-func CustomFileServer(root string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Корректируем путь к файлу
-		path := filepath.Join(root, r.URL.Path)
-
-		if r.URL.Path == "/" {
-			path = filepath.Join(root, "index.html")
+func setupDB() (*sql.DB, error) {
+	dbPath := os.Getenv("TODO_DBFILE")
+	if dbPath == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("ошибка директории: %v", err)
 		}
+		dbPath = filepath.Join(cwd, "scheduler.db")
+	}
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при подключении к БД: %v", err)
+	}
 
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			http.NotFound(w, r)
-			return
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		createTableQuery := `
+		CREATE TABLE scheduler (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			date TEXT NOT NULL,
+			title TEXT NOT NULL,
+			comment TEXT,
+			repeat TEXT(128)
+		);
+		CREATE INDEX idx_date ON scheduler(date);
+		`
+		if _, err := db.Exec(createTableQuery); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("ошибка при создании таблицы: %v", err)
 		}
+	}
 
-		http.ServeFile(w, r, path)
-	})
+	return db, nil
 }
