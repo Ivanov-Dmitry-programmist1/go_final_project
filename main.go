@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Ivanov-Dmitry-programmist1/go_final_project/pkg/api"
+	//"github.com/Ivanov-Dmitry-programmist1/go_final_project/pkg/api"
 
 	_ "github.com/mattn/go-sqlite3"
 )
