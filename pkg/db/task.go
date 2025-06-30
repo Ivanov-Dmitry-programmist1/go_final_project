@@ -1,4 +1,4 @@
-package db
+package service_tasks
 
 type Task struct {
 	ID      string `json:"id"`
