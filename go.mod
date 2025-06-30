@@ -1,4 +1,4 @@
-module go_final_project/go_final_project
+module github.com/Ivanov-Dmitry-programmist1/go_final_project
 
 go 1.24.2
 
