@@ -9,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 func makeHandler(fn func(http.ResponseWriter, *http.Request, *sql.DB), db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, db)
@@ -33,7 +34,6 @@ func main() {
 	webDir := "./web"
 	fileServer := http.FileServer(http.Dir(webDir))
 	http.Handle("/", fileServer)
-
 	http.HandleFunc("/api/nextdate", nextDateH)
 	http.HandleFunc("/api/task", authMidW(makeHandler(taskH, db)))
 	http.HandleFunc("/api/tasks", authMidW(makeHandler(tasksH, db)))
