@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"go_final_project/go_final_project/pkg/db"
+	//"go_final_project/go_final_project/pkg/db"
 	"log"
 	"os"
 
-	"go1f/pkg/server"
+	//"go1f/pkg/server"
 )
 
 func main() {
