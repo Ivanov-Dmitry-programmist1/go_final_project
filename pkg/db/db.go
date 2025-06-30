@@ -1,4 +1,4 @@
-package db
+package service_tasks
 
 import (
 	"database/sql"
