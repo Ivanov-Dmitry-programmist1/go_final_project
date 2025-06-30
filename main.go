@@ -6,25 +6,27 @@ import (
 	"net/http"
 	"os"
 
-	//"github.com/Ivanov-Dmitry-programmist1/go_final_project/pkg/api"
-
 	_ "github.com/mattn/go-sqlite3"
 )
+
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *sql.DB), db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fn(w, r, db)
+	}
+}
 
 func main() {
 	port := os.Getenv("TODO_PORT")
 	if port == "" {
 		port = "7540"
 	}
-
 	appPassword = os.Getenv("TODO_PASSWORD")
 	if appPassword == "" {
-		log.Println("Переменная TODO_PASSWORD не установлена. Аутентификация отключена.")
+		log.Println("The TODO_PASSWORD variable is not set. Authentication is disabled")
 	}
-
 	db, err := setupDB()
 	if err != nil {
-		log.Fatalf("Ошибка настройки БД: %v", err)
+		log.Fatalf("DB configuration error: %v", err)
 	}
 	defer db.Close()
 
@@ -32,28 +34,14 @@ func main() {
 	fileServer := http.FileServer(http.Dir(webDir))
 	http.Handle("/", fileServer)
 
-	http.HandleFunc("/api/nextdate", api.NextDateHandler)
-	http.HandleFunc("/api/task", authMidW(api.MakeHandler(taskHandler, db)))
-	http.HandleFunc("/api/tasks", authMidW(api.MakeHandler(tasks_service.TasksHandler, db)))
-	http.HandleFunc("/api/task/done", authMidW(api.MakeHandler(tasks_service.TaskDoneHandler, db)))
-	http.HandleFunc("/api/signin", api.MakeHandler(signInHandler, db))
+	http.HandleFunc("/api/nextdate", nextDateH)
+	http.HandleFunc("/api/task", authMidW(makeHandler(taskH, db)))
+	http.HandleFunc("/api/tasks", authMidW(makeHandler(tasksH, db)))
+	http.HandleFunc("/api/task/done", authMidW(makeHandler(taskDoneH, db)))
+	http.HandleFunc("/api/signin", authMidW(makeHandler(signInH, db)))
 
+	log.Printf("Starting the server on the port %s...\n", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
-	}
-}
-
-func taskHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	switch r.Method {
-	case http.MethodPost:
-		api.AddTaskHandler(w, r, db)
-	case http.MethodGet:
-		api.TasksHandler(w, r, db)
-	case http.MethodPut:
-		api.EditTaskHandler(w, r, db)
-	case http.MethodDelete:
-		api.DeleteTaskHandler(w, r, db)
-	default:
-		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 	}
 }
