@@ -15,10 +15,6 @@ const (
 )
 
 func StartServer(port string, webDir string) error {
-	err := db.Init("tasks.db")
-	if err != nil {
-		log.Fatalf("Ошибка инициализации БД: %v", err)
-	}
 	api.Init()
 	fs := CustomFileServer(webDir)
 	http.Handle("/", fs)
