@@ -32,11 +32,11 @@ func main() {
 	fileServer := http.FileServer(http.Dir(webDir))
 	http.Handle("/", fileServer)
 
-	http.HandleFunc("/api/nextdate", tasks_service.NextDateHandler)
-	http.HandleFunc("/api/task", authMidW(tasks_service.MakeHandler(taskHandler, db)))
-	http.HandleFunc("/api/tasks", authMidW(tasks_service.MakeHandler(tasks_service.TasksHandler, db)))
-	http.HandleFunc("/api/task/done", authMidW(tasks_service.MakeHandler(tasks_service.TaskDoneHandler, db)))
-	http.HandleFunc("/api/signin", tasks_service.MakeHandler(signInHandler, db))
+	http.HandleFunc("/api/nextdate", api.NextDateHandler)
+	http.HandleFunc("/api/task", authMidW(api.MakeHandler(taskHandler, db)))
+	http.HandleFunc("/api/tasks", authMidW(api.MakeHandler(tasks_service.TasksHandler, db)))
+	http.HandleFunc("/api/task/done", authMidW(api.MakeHandler(tasks_service.TaskDoneHandler, db)))
+	http.HandleFunc("/api/signin", api.MakeHandler(signInHandler, db))
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
@@ -46,13 +46,13 @@ func main() {
 func taskHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	switch r.Method {
 	case http.MethodPost:
-		tasks_service.AddTaskHandler(w, r, db)
+		api.AddTaskHandler(w, r, db)
 	case http.MethodGet:
-		tasks_service.TasksHandler(w, r, db)
+		api.TasksHandler(w, r, db)
 	case http.MethodPut:
-		tasks_service.EditTaskHandler(w, r, db)
+		api.EditTaskHandler(w, r, db)
 	case http.MethodDelete:
-		tasks_service.DeleteTaskHandler(w, r, db)
+		api.DeleteTaskHandler(w, r, db)
 	default:
 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 	}
