@@ -1,33 +1,59 @@
 package main
 
 import (
-	"fmt"
-	"go_final_project/go_final_project/pkg/db"
+	"database/sql"
 	"log"
+	"net/http"
 	"os"
 
-	"go1f/pkg/server"
+	"github.com/Ivanov-Dmitry-programmist1/go_final_project/pkg/api"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
 	port := os.Getenv("TODO_PORT")
 	if port == "" {
-		port = server.DefaultPort
+		port = "7540"
 	}
 
-	dbFile := os.Getenv("TODO_DBFILE")
-	if dbFile == "" {
-		dbFile = "scheduler.db"
+	appPassword = os.Getenv("TODO_PASSWORD")
+	if appPassword == "" {
+		log.Println("Переменная TODO_PASSWORD не установлена. Аутентификация отключена.")
 	}
 
-	err := db.Init(dbFile)
+	db, err := setupDB()
 	if err != nil {
-		log.Fatal("Ошибка инициализации базы данных:", err)
+		log.Fatalf("Ошибка настройки БД: %v", err)
 	}
+	defer db.Close()
 
-	fmt.Printf("Starting server on port %s\n", port)
-	err = server.StartServer(port, server.WebDir)
-	if err != nil {
-		log.Fatal("Error starting server:", err)
+	webDir := "./web"
+	fileServer := http.FileServer(http.Dir(webDir))
+	http.Handle("/", fileServer)
+
+	http.HandleFunc("/api/nextdate", tasks_service.NextDateHandler)
+	http.HandleFunc("/api/task", authMidW(tasks_service.MakeHandler(taskHandler, db)))
+	http.HandleFunc("/api/tasks", authMidW(tasks_service.MakeHandler(tasks_service.TasksHandler, db)))
+	http.HandleFunc("/api/task/done", authMidW(tasks_service.MakeHandler(tasks_service.TaskDoneHandler, db)))
+	http.HandleFunc("/api/signin", tasks_service.MakeHandler(signInHandler, db))
+
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func taskHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	switch r.Method {
+	case http.MethodPost:
+		tasks_service.AddTaskHandler(w, r, db)
+	case http.MethodGet:
+		tasks_service.TasksHandler(w, r, db)
+	case http.MethodPut:
+		tasks_service.EditTaskHandler(w, r, db)
+	case http.MethodDelete:
+		tasks_service.DeleteTaskHandler(w, r, db)
+	default:
+		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 	}
 }
