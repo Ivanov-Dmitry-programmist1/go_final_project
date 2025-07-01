@@ -1,49 +1,46 @@
 package main
 
 import (
-	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
-	_ "github.com/mattn/go-sqlite3"
+	"go_final_project/config"
+	"go_final_project/db"
+	"go_final_project/handlers"
 )
 
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *sql.DB), db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, db)
-	}
-}
-
 func main() {
+	webDir := "web"
+
 	port := os.Getenv("TODO_PORT")
 	if port == "" {
-		port = "7540"
+		port = strconv.Itoa(config.Port)
 	}
-	appPassword = os.Getenv("TODO_PASSWORD")
-	if appPassword == "" {
-		log.Println("The TODO_PASSWORD variable is not set. Authentication is disabled")
-	}
-	db, err := setupDB()
+	port = ":" + port
+
+	database, err := db.InitDB()
 	if err != nil {
-		log.Fatalf("DB configuration error: %v", err)
-	}
-	defer db.Close()
-
-	webDir := "./web"
-	fileServer := http.FileServer(http.Dir(webDir))
-	http.Handle("/", fileServer)
-
-	// API рабы с аутентификацией
-	http.HandleFunc("/api/nextdate", nextDateH)
-	http.HandleFunc("/api/task", authMidW(makeHandler(taskH, db)))
-	http.HandleFunc("/api/tasks", authMidW(makeHandler(tasksH, db)))
-	http.HandleFunc("/api/task/done", authMidW(makeHandler(taskDoneH, db)))
-	http.HandleFunc("/api/signin", authMidW(makeHandler(signInH, db)))
-
-	log.Printf("Starting the server on the port %s...\n", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
+	}
+	defer database.Close()
+
+	fmt.Println("Сервер запущен на порту", port)
+
+	http.HandleFunc("/api/task/done", handlers.MarkTaskDoneHandler(database))
+
+	http.HandleFunc("/api/task", handlers.TaskHandler(database))
+
+	http.HandleFunc("/api/tasks", handlers.GetTasksHandler(database))
+
+	http.HandleFunc("/api/nextdate", handlers.NextDateHandler)
+
+	http.Handle("/", http.FileServer(http.Dir(webDir)))
+
+	err = http.ListenAndServe(port, nil)
+	if err != nil {
+		log.Fatal("Ошибка при запуске сервера: ", err)
 	}
 }
